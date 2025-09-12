@@ -7,18 +7,18 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"todo-app-backend/internal/models"
+	"todo-app-backend/internal/repository"
 )
 
 type TaskHandler struct {
-	// 後でデータベース接続を追加
+	taskRepo *repository.TaskRepository
 }
 
 func NewTaskHandler() *TaskHandler {
-	return &TaskHandler{}
+	return &TaskHandler{
+		taskRepo: repository.NewTaskRepository(),
+	}
 }
-
-// 一時的なタスクストレージ（後でデータベースに置き換え）
-var tasks = make(map[string]models.Task)
 
 func (h *TaskHandler) GetTasks(c echo.Context) error {
 	userID := getUserIDFromContext(c)
@@ -29,11 +29,11 @@ func (h *TaskHandler) GetTasks(c echo.Context) error {
 	}
 
 	// ユーザーのタスクを取得
-	var userTasks []models.Task
-	for _, task := range tasks {
-		if task.UserID == userID {
-			userTasks = append(userTasks, task)
-		}
+	userTasks, err := h.taskRepo.GetTasksByUserID(userID)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to get tasks",
+		})
 	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
@@ -70,7 +70,12 @@ func (h *TaskHandler) CreateTask(c echo.Context) error {
 		UpdatedAt:   time.Now(),
 	}
 
-	tasks[task.ID] = task
+	// データベースにタスクを保存
+	if err := h.taskRepo.CreateTask(&task); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create task",
+		})
+	}
 
 	return c.JSON(http.StatusCreated, map[string]interface{}{
 		"success": true,
@@ -87,8 +92,8 @@ func (h *TaskHandler) UpdateTask(c echo.Context) error {
 	}
 
 	taskID := c.Param("id")
-	task, exists := tasks[taskID]
-	if !exists {
+	task, err := h.taskRepo.GetTaskByID(taskID)
+	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{
 			"error": "Task not found",
 		})
@@ -126,7 +131,12 @@ func (h *TaskHandler) UpdateTask(c echo.Context) error {
 	}
 	task.UpdatedAt = time.Now()
 
-	tasks[taskID] = task
+	// データベースでタスクを更新
+	if err := h.taskRepo.UpdateTask(task); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to update task",
+		})
+	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"success": true,
@@ -143,8 +153,10 @@ func (h *TaskHandler) DeleteTask(c echo.Context) error {
 	}
 
 	taskID := c.Param("id")
-	task, exists := tasks[taskID]
-	if !exists {
+	
+	// タスクが存在するかチェック
+	task, err := h.taskRepo.GetTaskByID(taskID)
+	if err != nil {
 		return c.JSON(http.StatusNotFound, map[string]string{
 			"error": "Task not found",
 		})
@@ -157,7 +169,12 @@ func (h *TaskHandler) DeleteTask(c echo.Context) error {
 		})
 	}
 
-	delete(tasks, taskID)
+	// データベースからタスクを削除
+	if err := h.taskRepo.DeleteTask(taskID); err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to delete task",
+		})
+	}
 
 	return c.JSON(http.StatusOK, map[string]interface{}{
 		"success": true,
