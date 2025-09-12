@@ -1,14 +1,18 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+	"todo-app-backend/internal/config"
+	"todo-app-backend/internal/services"
 )
 
-func JWTAuth() echo.MiddlewareFunc {
+func JWTAuth(cfg *config.Config) echo.MiddlewareFunc {
+	jwtService := services.NewJWTService(cfg)
+	
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Authorizationヘッダーを取得
@@ -28,40 +32,38 @@ func JWTAuth() echo.MiddlewareFunc {
 			}
 
 			// JWTトークンを検証
-			token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-				// 署名方法を確認
-				if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-					return nil, jwt.ErrSignatureInvalid
-				}
-				return []byte("your-secret-key"), nil
-			})
-
+			claims, err := jwtService.ValidateToken(tokenString)
 			if err != nil {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
 					"error": "Invalid token",
 				})
 			}
 
-			// クレームを取得
-			if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
-				userID, ok := claims["user_id"].(string)
-				if !ok {
-					return c.JSON(http.StatusUnauthorized, map[string]string{
-						"error": "Invalid token claims",
-					})
-				}
-
-				// コンテキストにユーザーIDを設定
-				c.Set("user_id", userID)
-				return next(c)
+			// トークンタイプを確認（アクセストークンのみ許可）
+			tokenType, ok := claims["type"].(string)
+			if !ok || tokenType != "access" {
+				return c.JSON(http.StatusUnauthorized, map[string]string{
+					"error": "Invalid token type",
+				})
 			}
 
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"error": "Invalid token",
-			})
+			userID, ok := claims["user_id"].(string)
+			if !ok {
+				return c.JSON(http.StatusUnauthorized, map[string]string{
+					"error": "Invalid token claims",
+				})
+			}
+
+			// デバッグ用ログ
+			fmt.Printf("JWT Auth - UserID: %s, Path: %s\n", userID, c.Request().URL.Path)
+
+			// コンテキストにユーザーIDを設定
+			c.Set("user_id", userID)
+			return next(c)
 		}
 	}
 }
+
 
 
 
