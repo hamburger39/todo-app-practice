@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  backend:
+    build: 
+      context: ./backend
+      target: builder
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENVIRONMENT=development
+      - JWT_SECRET=dev-secret-key
+      - JWT_EXPIRY_HOURS=24
+      - DATABASE_PATH=./todo.db
+    volumes:
+      - ./backend:/app
+      - /app/vendor
+    command: go run cmd/main.go
+    restart: unless-stopped
+
+  frontend:
+    build: 
+      context: ./frontend
+      target: builder
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    command: npm run dev
+    depends_on:
+      - backend
+    restart: unless-stopped

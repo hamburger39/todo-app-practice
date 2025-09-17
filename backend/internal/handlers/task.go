@@ -8,6 +8,7 @@ import (
 
 	"todo-app-backend/internal/models"
 	"todo-app-backend/internal/repository"
+	"todo-app-backend/internal/utils"
 )
 
 type TaskHandler struct {
@@ -59,7 +60,7 @@ func (h *TaskHandler) CreateTask(c echo.Context) error {
 
 	// タスクを作成
 	task := models.Task{
-		ID:          generateID(),
+		ID:          utils.GenerateID(),
 		UserID:      userID,
 		Title:       req.Title,
 		Description: req.Description,
@@ -191,3 +192,4 @@ func getUserIDFromContext(c echo.Context) string {
 	}
 	return userID.(string)
 }
+

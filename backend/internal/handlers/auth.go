@@ -11,6 +11,7 @@ import (
 	"todo-app-backend/internal/models"
 	"todo-app-backend/internal/repository"
 	"todo-app-backend/internal/services"
+	"todo-app-backend/internal/utils"
 )
 
 type AuthHandler struct {
@@ -56,7 +57,7 @@ func (h *AuthHandler) Register(c echo.Context) error {
 
 	// ユーザーを作成
 	user := models.User{
-		ID:        generateID(),
+		ID:        utils.GenerateID(),
 		Email:     req.Email,
 		Password:  string(hashedPassword),
 		Name:      req.Name,
@@ -190,10 +191,6 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	})
 }
 
-// ヘルパー関数
-func generateID() string {
-	return time.Now().Format("20060102150405")
-}
 
 
 
