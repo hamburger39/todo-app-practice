@@ -1,6 +1,0 @@
-[33m88ebcba[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mfeature/database-and-auth-improvements[m[33m, [m[1;31morigin/feature/database-and-auth-improvements[m[33m)[m Add frontend .gitignore file
-[33mde3fd84[m Add frontend files to repository
-[33m28c06f7[m chore: .gitignoreを更新してビルド成果物を除外
-[33m92b8ab3[m feat: データベース対応と認証機能の改善
-[33m476fc02[m[33m ([m[1;32mmaster[m[33m)[m feat: Complete todo app with backend and frontend
-[33m0a3521e[m Initial commit: Todo app with React + Next.js frontend and Go + Echo backend
